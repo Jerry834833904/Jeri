@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>密码生成工具</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body { font-family: Arial, sans-serif; padding: 30px; background-color: #f8f8f8; text-align: center; }
+        input, button { padding: 12px; font-size: 18px; margin: 10px; width: 80%; max-width: 300px; }
+        .result { margin-top: 20px; font-size: 22px; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h2>ATW串焊机4级解锁</h2>
+    <input type="number" id="snInput" placeholder="请输入序列号" />
+    <br>
+    <button onclick="generatePassword()">生成密码</button>
+    <div class="result" id="result"></div>
+
+    <script>
+        function generatePassword() {
+            let ser = parseInt(document.getElementById("snInput").value);
+            if (isNaN(ser)) {
+                document.getElementById("result").innerText = "请输入正确的序列号";
+                return;
+            }
+
+            let num = Math.floor(ser / 10000);
+            let num2 = Math.floor(ser / 1000) % 10;
+            let num3 = Math.floor(ser / 100) % 10;
+            let num4 = Math.floor(ser / 10) % 10;
+            let num5 = ser % 10;
+            let num6 = num + num2 + num3 + num4 + num5;
+
+            let now = new Date();
+            let year = now.getFullYear();
+            let month = now.getMonth() + 1;
+            let day = now.getDate();
+            let dayOfWeek = now.getDay(); // Sunday=0
+            let num8 = (dayOfWeek === 0) ? 7 : dayOfWeek;
+
+            // 修复跨天 bug：使用 UTC 保证 dayOfYear 计算准确
+            let dayOfYear = Math.floor((Date.UTC(year, month - 1, day) - Date.UTC(year, 0, 0)) / (1000 * 60 * 60 * 24));
+
+            let left = (month * day + year + Math.pow(num6, 3)) + Math.pow(num8, 2) + dayOfYear +
+                       ((num5 * 100 + num3 * 10 + num) * (num5 + num3 * 10 + num * 100));
+
+            let num9 = left ^ 36873;
+
+            let password = (
+                (num9 % 10) * 10000 +
+                Math.floor(num9 / 10) % 10 * 1000 +
+                Math.floor(num9 / 100) % 10 * 100 +
+                Math.floor(num9 / 1000) % 10 * 10 +
+                Math.floor(num9 / 10000) % 10
+            );
+
+            document.getElementById("result").innerText = "密码是：" + password.toString().padStart(5, "0");
+        }
+    </script>
+    <p style="font-size:14px;color:gray;margin-top:40px;">此程序由奥特维王杰开发，请勿转发，如转发后果自负</p>
+</body>
+</html>
