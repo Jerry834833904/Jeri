@@ -18,9 +18,7 @@
     .topbar{
       width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between; margin-top:10px;
     }
-    .datetime{
-      font-size:18px; font-weight:600; letter-spacing:.5px;
-    }
+    .datetime{ font-size:18px; font-weight:600; letter-spacing:.5px; }
     .luggage{
       border:1px solid var(--border); background:var(--card); border-radius:10px; padding:6px 12px; cursor:pointer; font-size:14px;
     }
@@ -44,17 +42,16 @@
 </head>
 <body>
   <div class="wrap">
-    <!-- 顶部：日期时间 + Luggage（语言切换） -->
+    <!-- 顶部：本地日期时间 + 语言切换 -->
     <div class="topbar">
       <div class="datetime" id="now">--/--/-- --:--:--</div>
       <button class="luggage" id="luggageBtn">🧳 Luggage</button>
     </div>
 
-    <!-- 主体卡片 -->
     <div class="card">
       <h1 id="title">ATW串焊机4级解锁</h1>
       <div class="input">
-        <!-- 限制输入：正则 pattern 保证是 5 位数字 -->
+        <!-- 仅允许 5 位纯数字 -->
         <input id="sn" type="text" inputmode="numeric" pattern="\\d{5}" maxlength="5" placeholder="请输入5位序列号" />
       </div>
       <button class="btn" id="genBtn">生成密码</button>
@@ -93,36 +90,51 @@
 
     function applyI18n() {
       const t = i18n[lang];
-      document.getElementById('title').textContent = t.title;
-      document.getElementById('sn').placeholder = t.placeholder;
-      document.getElementById('genBtn').textContent = t.gen;
-      document.getElementById('foot').textContent = t.footer;
-      document.getElementById('luggageBtn').textContent = t.luggage;
-      const resEl = document.getElementById('res');
-      if (resEl.dataset.rawPwd) {
-        resEl.textContent = t.resultPrefix + resEl.dataset.rawPwd;
-      }
+      title.textContent = t.title;
+      sn.placeholder = t.placeholder;
+      genBtn.textContent = t.gen;
+      foot.textContent = t.footer;
+      luggageBtn.textContent = t.luggage;
+      if (res.dataset.rawPwd) res.textContent = t.resultPrefix + res.dataset.rawPwd;
       document.documentElement.lang = (lang === 'zh' ? 'zh-CN' : 'en');
     }
 
-    // ===== 顶部日期+时间 =====
+    // ===== 顶部显示本地日期+时间 =====
     const nowEl = document.getElementById('now');
     function pad(n){ return String(n).padStart(2,'0'); }
-    function tick() {
+    function tickLocal() {
       const d = new Date();
-      const dateStr = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
-      const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-      nowEl.textContent = `${dateStr} ${timeStr}`;
+      nowEl.textContent = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
-    setInterval(tick, 1000); tick();
+    setInterval(tickLocal, 1000); tickLocal();
 
-    // ===== C# 等价算法 =====
+    // ===== 获取北京时间的年月日/星期/DayOfYear =====
+    function getCNParts(baseDate = new Date()){
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Shanghai',
+        year:'numeric', month:'2-digit', day:'2-digit'
+      }).formatToParts(baseDate);
+      const Y = +parts.find(p=>p.type==='year').value;
+      const M = +parts.find(p=>p.type==='month').value;
+      const D = +parts.find(p=>p.type==='day').value;
+
+      // 星期（Sakamoto 算法）
+      function dow(y,m,d){ const t=[0,3,2,5,0,3,5,1,4,6,2,4]; if(m<3) y-=1; return (y + Math.floor(y/4) - Math.floor(y/100) + Math.floor(y/400) + t[m-1] + d) % 7; }
+      const dow0 = dow(Y,M,D);
+      const num8 = (dow0 === 0 ? 7 : dow0);
+
+      // DayOfYear
+      const isLeap = (Y%400===0)|| (Y%4===0 && Y%100!==0);
+      const mdays = [31, isLeap?29:28, 31,30,31,30,31,31,30,31,30,31];
+      let doy = D; for(let i=0;i<M-1;i++) doy += mdays[i];
+
+      return {year:Y, month:M, day:D, num8, doy};
+    }
+
+    // ===== C# 等价算法（用北京时间字段） =====
     function intDiv(n, d){ return n < 0 ? Math.ceil(n/d) : Math.floor(n/d); }
     function intMod(n, d){ return n - intDiv(n,d) * d; }
-    function getDayOfYear(d){
-      const start = new Date(d.getFullYear(), 0, 1);
-      return Math.floor((d - start)/86400000) + 1;
-    }
+
     function calNew(ser){
       const num  = intDiv(ser, 10000);
       const num2 = intDiv(ser, 1000) % 10;
@@ -131,13 +143,7 @@
       const num5 = ser % 10;
       const num6 = num + num2 + num3 + num4 + num5;
 
-      const now = new Date();
-      const year  = now.getFullYear();
-      const month = now.getMonth() + 1;
-      const day   = now.getDate();
-      const dow0  = now.getDay(); 
-      const num8  = (dow0 === 0 ? 7 : dow0);
-      const doy   = getDayOfYear(now);
+      const {year, month, day, num8, doy} = getCNParts();
 
       const abc = num5 * 100 + num3 * 10 + num;
       const cba = num5 + num3 * 10 + num * 100;
@@ -157,45 +163,44 @@
     }
 
     // ===== 交互 =====
-    const snEl   = document.getElementById('sn');
+    const sn   = document.getElementById('sn');
     const genBtn = document.getElementById('genBtn');
-    const resEl  = document.getElementById('res');
-    const errEl  = document.getElementById('err');
-    const lugBtn = document.getElementById('luggageBtn');
+    const res  = document.getElementById('res');
+    const err  = document.getElementById('err');
+    const title= document.getElementById('title');
+    const foot = document.getElementById('foot');
+    const luggageBtn = document.getElementById('luggageBtn');
 
     function compute(){
-      errEl.textContent = '';
+      err.textContent = '';
       const t = i18n[lang];
-      const raw = (snEl.value || '').trim();
+      const raw = (sn.value || '').trim();
 
-      // 校验必须是5位数字
       if (!/^\d{5}$/.test(raw)){
-        errEl.textContent = t.errNaN;
-        resEl.textContent = '';
-        resEl.dataset.rawPwd = '';
+        err.textContent = t.errNaN;
+        res.textContent = '';
+        res.dataset.rawPwd = '';
         return;
       }
 
       const n = Number(raw);
       if (n < 0 || n > 99999){
-        errEl.textContent = t.errRange;
-        resEl.textContent = '';
-        resEl.dataset.rawPwd = '';
+        err.textContent = t.errRange;
+        res.textContent = '';
+        res.dataset.rawPwd = '';
         return;
       }
 
       const pwd = calNew(n);
-      resEl.dataset.rawPwd = pwd;
-      resEl.textContent = t.resultPrefix + pwd;
+      res.dataset.rawPwd = pwd;
+      res.textContent = t.resultPrefix + pwd;
     }
-    genBtn.addEventListener('click', compute);
-    snEl.addEventListener('keydown', e => { if (e.key === 'Enter') compute(); });
-    snEl.addEventListener('input', e => {
-      // 实时限制：只能输入数字，最多5位
-      e.target.value = e.target.value.replace(/\D/g, '').slice(0,5);
-    });
 
-    lugBtn.addEventListener('click', () => { lang = (lang === 'zh' ? 'en' : 'zh'); applyI18n(); });
+    genBtn.addEventListener('click', compute);
+    sn.addEventListener('keydown', e => { if (e.key === 'Enter') compute(); });
+    sn.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0,5); });
+
+    luggageBtn.addEventListener('click', () => { lang = (lang === 'zh' ? 'en' : 'zh'); applyI18n(); });
     applyI18n();
   </script>
 </body>
