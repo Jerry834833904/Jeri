@@ -1,75 +1,193 @@
-<!DOCTYPE html>
-<html lang="zh">
+<!doctype html>
+<html lang="zh-CN">
 <head>
-  <meta charset="UTF-8">
-  <title>ATW 串焊机解锁密码生成</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>ATW串焊机4级解锁</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 30px; background-color: #f8f8f8; text-align: center; }
-    input, button { padding: 12px; font-size: 18px; margin: 10px; width: 80%; max-width: 300px; }
-    .result { margin-top: 20px; font-size: 22px; font-weight: bold; }
+    :root{
+      --bg:#f5f5f7; --ink:#111; --muted:#8e8e93; --card:#fff;
+      --border:#e5e5ea; --btnbg:#e9e9ec;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0; background:var(--bg); color:var(--ink);
+      font:18px/1.8 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
+    }
+    .wrap{ min-height:100%; display:flex; flex-direction:column; align-items:center; padding: env(safe-area-inset-top) 24px 48px; }
+    .topbar{
+      width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between; margin-top:14px;
+    }
+    .datetime{
+      font-size:26px; font-weight:700; letter-spacing:1px;
+    }
+    .luggage{
+      border:1px solid var(--border); background:var(--card); border-radius:12px; padding:10px 16px; cursor:pointer; font-size:16px;
+    }
+    .card{
+      width:100%; max-width:640px; background:var(--card); border:1px solid var(--border);
+      border-radius:24px; margin-top:28px; padding:36px 26px 30px; text-align:center;
+      box-shadow: 0 8px 28px rgba(0,0,0,.05);
+    }
+    h1{ margin:0 0 24px; font-size:26px; font-weight:800; }
+    .input{ margin:18px auto 16px; width:min(460px,100%); }
+    input[type="text"]{ width:100%; font-size:18px; padding:16px 16px; border-radius:14px; border:1px solid var(--border); background:#fafafa; outline:none; }
+    input::placeholder{ color:#b0b0b4; }
+    .btn{
+      width:min(460px,100%); padding:16px; margin:14px auto 0; border-radius:14px;
+      border:1px solid #d0d0d4; background:var(--btnbg); font-weight:700; cursor:pointer; font-size:18px;
+    }
+    .res{ margin-top:20px; font-size:26px; font-weight:700; min-height:1.4em; color:#111; }
+    .err{ color:#e64545; font-size:15px; min-height:1.4em; }
+    .footer{ max-width:640px; color:#9a9aa0; font-size:15px; text-align:center; margin-top:32px; }
   </style>
 </head>
 <body>
-  <h2>ATW串焊机4级解锁</h2>
-  <input type="number" id="snInput" placeholder="请输入序列号" />
-  <br>
-  <button onclick="generatePassword()">生成密码</button>
-  <div class="result" id="result"></div>
+  <div class="wrap">
+    <!-- 顶部：日期时间 + Luggage（语言切换） -->
+    <div class="topbar">
+      <div class="datetime" id="now">--/--/-- --:--:--</div>
+      <button class="luggage" id="luggageBtn">🧳 Luggage</button>
+    </div>
+
+    <!-- 主体卡片 -->
+    <div class="card">
+      <h1 id="title">ATW串焊机4级解锁</h1>
+      <div class="input">
+        <input id="sn" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="请输入序列号" />
+      </div>
+      <button class="btn" id="genBtn">生成密码</button>
+      <div class="err" id="err"></div>
+      <div class="res" id="res"></div>
+    </div>
+
+    <div class="footer" id="foot">此程序由奥特维王杰开发，请勿转发，如转发后果自负。</div>
+  </div>
 
   <script>
-    function generatePassword() {
-      let ser = parseInt(document.getElementById("snInput").value);
-      if (isNaN(ser)) {
-        document.getElementById("result").innerText = "请输入正确的序列号";
+    // ===== 多语言文本 =====
+    const i18n = {
+      zh: {
+        title: "ATW串焊机4级解锁",
+        placeholder: "请输入序列号",
+        gen: "生成密码",
+        resultPrefix: "密码是：",
+        errNaN: "请输入正确的序列号（仅数字）。",
+        errRange: "序列号超出范围：需要 0 ~ 4294967295。",
+        footer: "此程序由奥特维王杰开发，请勿转发，如转发后果自负。",
+        luggage: "🧳 Luggage"
+      },
+      en: {
+        title: "ATW Tab Welding L4 Unlock",
+        placeholder: "Enter Serial Number",
+        gen: "Generate Password",
+        resultPrefix: "Password: ",
+        errNaN: "Please enter a valid serial number (digits only).",
+        errRange: "Serial out of range: must be 0 ~ 4294967295.",
+        footer: "Developed by AOTEWEI Jerry Wang. Do not redistribute; you assume all risks.",
+        luggage: "🧳 Luggage"
+      }
+    };
+    let lang = "zh";
+
+    function applyI18n() {
+      const t = i18n[lang];
+      document.getElementById('title').textContent = t.title;
+      document.getElementById('sn').placeholder = t.placeholder;
+      document.getElementById('genBtn').textContent = t.gen;
+      document.getElementById('foot').textContent = t.footer;
+      document.getElementById('luggageBtn').textContent = t.luggage;
+      const resEl = document.getElementById('res');
+      if (resEl.dataset.rawPwd) {
+        resEl.textContent = t.resultPrefix + resEl.dataset.rawPwd;
+      }
+      document.documentElement.lang = (lang === 'zh' ? 'zh-CN' : 'en');
+    }
+
+    // ===== 顶部日期+时间 =====
+    const nowEl = document.getElementById('now');
+    function pad(n){ return String(n).padStart(2,'0'); }
+    function tick() {
+      const d = new Date();
+      const dateStr = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())}`;
+      const timeStr = `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      nowEl.textContent = `${dateStr} ${timeStr}`;
+    }
+    setInterval(tick, 1000); tick();
+
+    // ===== C# 等价算法 =====
+    function intDiv(n, d){ return n < 0 ? Math.ceil(n/d) : Math.floor(n/d); }
+    function intMod(n, d){ return n - intDiv(n,d) * d; }
+    function getDayOfYear(d){
+      const start = new Date(d.getFullYear(), 0, 1);
+      return Math.floor((d - start)/86400000) + 1;
+    }
+    function calNew(ser){
+      const num  = intDiv(ser, 10000);
+      const num2 = intDiv(ser, 1000) % 10;
+      const num3 = intDiv(ser, 100)  % 10;
+      const num4 = intDiv(ser, 10)   % 10;
+      const num5 = ser % 10;
+      const num6 = num + num2 + num3 + num4 + num5;
+
+      const now = new Date();
+      const year  = now.getFullYear();
+      const month = now.getMonth() + 1;
+      const day   = now.getDate();
+      const dow0  = now.getDay(); 
+      const num8  = (dow0 === 0 ? 7 : dow0);
+      const doy   = getDayOfYear(now);
+
+      const abc = num5 * 100 + num3 * 10 + num;
+      const cba = num5 + num3 * 10 + num * 100;
+
+      const sum = (month * day) + year + (num6 ** 3) + (num8 ** 2) + doy + (abc * cba);
+      const num9 = (sum | 0) ^ 36873;
+
+      const d0 = intMod(num9, 10);
+      const d1 = intMod(intDiv(num9, 10),    10);
+      const d2 = intMod(intDiv(num9, 100),   10);
+      const d3 = intMod(intDiv(num9, 1000),  10);
+      const d4 = intMod(intDiv(num9, 10000), 10);
+
+      const reversed = d0*10000 + d1*1000 + d2*100 + d3*10 + d4;
+      const s = String(Math.abs(reversed)).padStart(5,'0');
+      return reversed < 0 ? '-' + s : s;
+    }
+
+    // ===== 交互 =====
+    const snEl   = document.getElementById('sn');
+    const genBtn = document.getElementById('genBtn');
+    const resEl  = document.getElementById('res');
+    const errEl  = document.getElementById('err');
+    const lugBtn = document.getElementById('luggageBtn');
+
+    function compute(){
+      errEl.textContent = '';
+      const t = i18n[lang];
+      const raw = (snEl.value || '').trim();
+      if (!/^\d+$/.test(raw)){
+        errEl.textContent = t.errNaN;
+        resEl.textContent = '';
+        resEl.dataset.rawPwd = '';
         return;
       }
-
-      let num = Math.floor(ser / 10000);
-      let num2 = Math.floor(ser / 1000) % 10;
-      let num3 = Math.floor(ser / 100) % 10;
-      let num4 = Math.floor(ser / 10) % 10;
-      let num5 = ser % 10;
-      let num6 = num + num2 + num3 + num4 + num5;
-
-      let now = new Date();
-      let year = now.getFullYear();
-      let month = now.getMonth() + 1;
-      let day = now.getDate();
-      let weekday = now.getDay();
-      let num8 = weekday === 0 ? 7 : weekday;
-
-      let startOfYear = new Date(year, 0, 0);
-      let diff = now - startOfYear;
-      let oneDay = 1000 * 60 * 60 * 24;
-      let dayOfYear = Math.floor(diff / oneDay);
-
-      let part1 = month * day + year + Math.pow(num6, 3);
-      let part2 = Math.pow(num8, 2);
-      let part3 = dayOfYear;
-      let part4 = ((num5 * 100 + num3 * 10 + num) * (num5 + num3 * 10 + num * 100));
-
-      let rawNum = (part1 + part2 + part3 + part4) ^ 36873;
-
-      // 按位重排（和 C# 顺序一致）
-      let rawPwd = 
-        (rawNum % 10) * 10000 +
-        Math.floor(rawNum / 10) % 10 * 1000 +
-        Math.floor(rawNum / 100) % 10 * 100 +
-        Math.floor(rawNum / 1000) % 10 * 10 +
-        Math.floor(rawNum / 10000) % 10;
-
-      // 转为字符串并补0
-      let rawStr = rawPwd.toString().padStart(5, '0');
-
-      // 减去第一位（0减1变9）
-      let firstDigit = (parseInt(rawStr[0]) + 9) % 10;
-      let finalPassword = firstDigit.toString() + rawStr.slice(1);
-
-      document.getElementById("result").innerText = "密码是：" + finalPassword;
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n < 0 || n > 4294967295){
+        errEl.textContent = t.errRange;
+        resEl.textContent = '';
+        resEl.dataset.rawPwd = '';
+        return;
+      }
+      const pwd = calNew(n);
+      resEl.dataset.rawPwd = pwd;
+      resEl.textContent = t.resultPrefix + pwd;
     }
-  </script>
+    genBtn.addEventListener('click', compute);
+    snEl.addEventListener('keydown', e => { if (e.key === 'Enter') compute(); });
 
-  <p style="font-size:14px;color:gray;margin-top:40px;">此程序由奥特维王杰开发，请勿转发，如转发后果自负</p>
+    lugBtn.addEventListener('click', () => { lang = (lang === 'zh' ? 'en' : 'zh'); applyI18n(); });
+    applyI18n();
+  </script>
 </body>
 </html>
