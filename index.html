@@ -31,7 +31,7 @@
     }
     h1{ margin:0 0 18px; font-size:22px; font-weight:800; }
     .input{ margin:14px auto 12px; width:min(420px,100%); }
-    input[type="text"]{ width:100%; font-size:16px; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:#fafafa; outline:none; }
+    input[type="text"]{ width:100%; font-size:16px; padding:12px 12px; border-radius:12px; border:1px solid var(--border); background:#fafafa; outline:none; text-align:center; }
     input::placeholder{ color:#b0b0b4; }
     .btn{
       width:min(420px,100%); padding:12px; margin:10px auto 0; border-radius:12px;
@@ -54,7 +54,8 @@
     <div class="card">
       <h1 id="title">ATW串焊机4级解锁</h1>
       <div class="input">
-        <input id="sn" type="text" inputmode="numeric" pattern="[0-9]*" placeholder="请输入序列号" />
+        <!-- 限制输入：正则 pattern 保证是 5 位数字 -->
+        <input id="sn" type="text" inputmode="numeric" pattern="\\d{5}" maxlength="5" placeholder="请输入5位序列号" />
       </div>
       <button class="btn" id="genBtn">生成密码</button>
       <div class="err" id="err"></div>
@@ -69,21 +70,21 @@
     const i18n = {
       zh: {
         title: "ATW串焊机4级解锁",
-        placeholder: "请输入序列号",
+        placeholder: "请输入5位序列号",
         gen: "生成密码",
         resultPrefix: "密码是：",
-        errNaN: "请输入正确的序列号（仅数字）。",
-        errRange: "序列号超出范围：需要 0 ~ 4294967295。",
+        errNaN: "请输入正确的5位数字序列号。",
+        errRange: "序列号必须是5位纯数字（00000~99999）。",
         footer: "此程序由奥特维王杰开发，请勿转发，如转发后果自负。",
         luggage: "🧳 Luggage"
       },
       en: {
         title: "ATW Tab Welding L4 Unlock",
-        placeholder: "Enter Serial Number",
+        placeholder: "Enter 5-digit Serial Number",
         gen: "Generate Password",
         resultPrefix: "Password: ",
-        errNaN: "Please enter a valid serial number (digits only).",
-        errRange: "Serial out of range: must be 0 ~ 4294967295.",
+        errNaN: "Please enter a valid 5-digit number.",
+        errRange: "Serial must be exactly 5 digits (00000~99999).",
         footer: "Developed by ATW Jerry. Do not redistribute; you assume all risks.",
         luggage: "🧳 Luggage"
       }
@@ -166,25 +167,33 @@
       errEl.textContent = '';
       const t = i18n[lang];
       const raw = (snEl.value || '').trim();
-      if (!/^\d+$/.test(raw)){
+
+      // 校验必须是5位数字
+      if (!/^\d{5}$/.test(raw)){
         errEl.textContent = t.errNaN;
         resEl.textContent = '';
         resEl.dataset.rawPwd = '';
         return;
       }
+
       const n = Number(raw);
-      if (!Number.isFinite(n) || n < 0 || n > 4294967295){
+      if (n < 0 || n > 99999){
         errEl.textContent = t.errRange;
         resEl.textContent = '';
         resEl.dataset.rawPwd = '';
         return;
       }
+
       const pwd = calNew(n);
       resEl.dataset.rawPwd = pwd;
       resEl.textContent = t.resultPrefix + pwd;
     }
     genBtn.addEventListener('click', compute);
     snEl.addEventListener('keydown', e => { if (e.key === 'Enter') compute(); });
+    snEl.addEventListener('input', e => {
+      // 实时限制：只能输入数字，最多5位
+      e.target.value = e.target.value.replace(/\D/g, '').slice(0,5);
+    });
 
     lugBtn.addEventListener('click', () => { lang = (lang === 'zh' ? 'en' : 'zh'); applyI18n(); });
     applyI18n();
