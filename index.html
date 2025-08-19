@@ -14,151 +14,150 @@
       margin:0; background:var(--bg); color:var(--ink);
       font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"PingFang SC","Microsoft YaHei",sans-serif;
     }
-    .wrap{ min-height:100%; display:flex; flex-direction:column; align-items:center; padding: env(safe-area-inset-top) 20px 40px; }
-    .topbar{
-      width:100%; max-width:640px; display:flex; align-items:center; justify-content:space-between; margin-top:10px;
-    }
-    .datetime{ font-size:18px; font-weight:600; letter-spacing:.5px; }
-    .luggage{
-      border:1px solid var(--border); background:var(--card); border-radius:10px; padding:6px 12px; cursor:pointer; font-size:14px;
-    }
+    .wrap{min-height:100%;display:flex;flex-direction:column;align-items:center;padding:env(safe-area-inset-top) 16px 40px}
+    .topbar{width:100%;max-width:640px;display:flex;justify-content:space-between;align-items:center;margin-top:8px}
+    #luggageBtn{border:1px solid var(--border); border-radius:10px; background:var(--btnbg); padding:8px 12px; cursor:pointer; font-size:15px;color:#007aff;}
     .card{
       width:100%; max-width:640px; background:var(--card); border:1px solid var(--border);
-      border-radius:20px; margin-top:20px; padding:28px 20px 24px; text-align:center;
-      box-shadow: 0 6px 24px rgba(0,0,0,.05);
+      border-radius:14px; box-shadow:0 10px 30px rgba(0,0,0,.06); padding:24px 20px; margin-top:12px;
+      text-align:center;
     }
-    h1{ margin:0 0 18px; font-size:22px; font-weight:800; }
-    .input{ margin:14px auto 12px; width:min(420px,100%); }
+    .title{font-weight:800; font-size:22px; margin:0 0 14px}
+    .input-row{margin:14px auto 10px; width:min(460px,100%)}
     input[type="text"]{
-      width:100%; font-size:16px; padding:12px 12px; border-radius:12px;
-      border:1px solid var(--border); background:#fafafa; outline:none; text-align:center;
+      width:100%; border:1px solid var(--border); border-radius:12px; padding:12px 14px; outline:none; font-size:16px;
+      background:#fff; text-align:center;
     }
-    input::placeholder{ color:#b0b0b4; }
-    .btn{
-      width:min(420px,100%); padding:12px; margin:10px auto 0; border-radius:12px;
-      border:1px solid #d0d0d4; background:var(--btnbg); font-weight:700; cursor:pointer; font-size:15px;
+    .btn-wide{
+      width:min(460px,100%); border:1px solid var(--border); border-radius:12px; background:var(--btnbg);
+      padding:14px 16px; cursor:pointer; font-size:16px; font-weight:700; margin:8px auto 0; display:block;color:#007aff;
     }
-    .res{ margin-top:18px; font-size:24px; font-weight:700; color:var(--highlight); min-height:1.4em; }
-    .err{ color:#e64545; font-size:14px; min-height:1.2em; }
-    .footer{ max-width:640px; color:#9a9aa0; font-size:13px; text-align:center; margin-top:28px; }
+    .muted{color:var(--muted)}
+    .result{font-size:20px; font-weight:700; color:var(--highlight); min-height:1.6em; margin-top:14px}
+    .err{color:#e64d4d; min-height:1.2em; margin-top:8px}
+    .footer{max-width:720px; color:#e64d4d; font-size:13px; text-align:center; margin-top:18px}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <!-- 顶部：时间 + 语言切换 -->
     <div class="topbar">
-      <div class="datetime" id="now">--/--/-- --:--:--</div>
-      <button class="luggage" id="luggageBtn">🧳 Luggage</button>
+      <div id="now" class="muted"></div>
+      <div><button id="luggageBtn">🧳 Luggage</button></div>
     </div>
 
-    <!-- 主卡片 -->
     <div class="card">
-      <h1 id="title">ATW串焊机4级解锁</h1>
-      <div class="input">
-        <input id="sn" type="text" inputmode="numeric" maxlength="5" pattern="\d{5}" placeholder="请输入5位序列号" />
+      <h1 class="title" id="title">ATW串焊机4级解锁</h1>
+
+      <div class="input-row">
+        <input id="sn" type="text" inputmode="numeric" autocomplete="off" placeholder="请输入5位序列号" />
       </div>
-      <button class="btn" id="genBtn">生成密码</button>
-      <div class="err" id="err"></div>
-      <div class="res" id="res"></div>
+
+      <button id="genBtn" class="btn-wide">生成密码</button>
+
+      <div id="err" class="err"></div>
+      <div id="res" class="result" data-raw-pwd=""></div>
     </div>
 
-    <div class="footer" id="foot">此程序由奥特维王杰开发，请勿转发，如转发后果自负。</div>
+    <div id="foot" class="footer">此程序由奥特维王杰开发，请勿转发，如转发后果自负。</div>
   </div>
 
   <script>
-    // ===  Cloudflare Workers 地址 ===
-    const API_BASE = 'https://atwjerry.834833904.workers.dev'; 
-    // 如果你的接口路径是 /pw，请把下面这行改为 '/pw'；否则留空字符串
-    const API_PATH = ''; // 或者 '/pw'
+    // ====== 后端域名 ======
+    const API_BASE = "https://atwjerry.834833904.workers.dev";
 
-    // ===== 多语言文本（🧳切换）=====
+    // ====== 多语言文案（界面按截图固定文案；仍可切换） ======
     const i18n = {
       zh: {
-        title: "ATW串焊机4级解锁",
+        title: "奥特维串焊机4级解锁",
         placeholder: "请输入5位序列号",
         gen: "生成密码",
         resultPrefix: "密码是：",
-        errNaN: "请输入 5 位纯数字序列号。",
-        errSvc: "服务暂时不可用，请稍后再试。",
-        footer: "此程序由奥特维王杰开发，请勿转发，如转发后果自负。",
-        luggage: "🧳 Luggage"
+        errNaN: "序列号必须是5位数字",
+        errRange: "序列号范围为 00000 - 99999",
+        luggage: "🧳 Luggage",
+        footer: "此程序由奥特维王杰开发，请勿转发，如转发后果自负。"
       },
       en: {
-        title: "ATW Tab Welding L4 Unlock",
+        title: "ATW Stringer L4 Unlock",
         placeholder: "Enter 5-digit serial number",
         gen: "Generate Password",
         resultPrefix: "Password: ",
-        errNaN: "Please enter a 5-digit numeric serial.",
-        errSvc: "Service unavailable. Please try again later.",
-        footer: "Developed by ATW Jerry. Do not redistribute; you assume all risks.",
-        luggage: "🧳 Luggage"
+        errNaN: "Serial number must be exactly 5 digits",
+        errRange: "Valid range: 00000 - 99999",
+        luggage: "🧳 Luggage",
+        footer: "Developed by ATW Jerry. Do not forward; you assume all consequences."
       }
     };
-    let lang = 'zh';
+    let lang = "zh";
 
-    function applyI18n(){
+    function applyI18n() {
       const t = i18n[lang];
-      document.getElementById('title').textContent = t.title;
-      document.getElementById('sn').placeholder = t.placeholder;
-      document.getElementById('genBtn').textContent = t.gen;
-      document.getElementById('foot').textContent = t.footer;
-      document.getElementById('luggageBtn').textContent = t.luggage;
-      const resEl = document.getElementById('res');
-      if (resEl.dataset.pwd) resEl.textContent = t.resultPrefix + resEl.dataset.pwd;
+      title.textContent = t.title;
+      sn.placeholder = t.placeholder;
+      genBtn.textContent = t.gen;
+      foot.textContent = t.footer;
+      luggageBtn.textContent = t.luggage;
+      if (res.dataset.rawPwd) res.textContent = t.resultPrefix + res.dataset.rawPwd;
       document.documentElement.lang = (lang === 'zh' ? 'zh-CN' : 'en');
     }
 
-    // ===== 顶部时间（本地时间）=====
+    // ===== 顶部显示本地日期+时间（与截图格式一致） =====
     const nowEl = document.getElementById('now');
     function pad(n){ return String(n).padStart(2,'0'); }
-    function tick() {
+    function tickLocal() {
       const d = new Date();
-      nowEl.textContent = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+      nowEl.textContent =
+        `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} `
+        + `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
     }
-    setInterval(tick, 1000); tick();
+    setInterval(tickLocal, 1000); tickLocal();
 
-    // ===== 交互 =====
-    const snEl = document.getElementById('sn');
-    const resEl = document.getElementById('res');
-    const errEl = document.getElementById('err');
-
-    // 仅允许数字 & 最多5位
-    snEl.addEventListener('input', e => {
-      e.target.value = e.target.value.replace(/\D/g,'').slice(0,5);
-    });
-    snEl.addEventListener('keydown', e => { if (e.key === 'Enter') compute(); });
-
-    document.getElementById('genBtn').addEventListener('click', compute);
-    document.getElementById('luggageBtn').addEventListener('click', () => {
-      lang = (lang === 'zh' ? 'en' : 'zh'); applyI18n();
-    });
-
+    // ===== 与后端对接保持不变：POST /api/calc =====
     async function compute(){
+      err.textContent = '';
       const t = i18n[lang];
-      const raw = (snEl.value || '').trim();
-      errEl.textContent = ''; resEl.textContent = ''; resEl.dataset.pwd = '';
+      const raw = (sn.value || '').trim();
 
       if (!/^\d{5}$/.test(raw)){
-        errEl.textContent = t.errNaN; return;
+        err.textContent = t.errNaN;
+        res.textContent = '';
+        res.dataset.rawPwd = '';
+        return;
       }
 
-      try{
-        const base = API_BASE.replace(/\/+$/,''); // 去尾斜杠
-        const path = API_PATH ? '/' + API_PATH.replace(/^\/+/,'') : '';
-        const url  = `${base}${path}?sn=${raw}`;
-        const r = await fetch(url, { cache:'no-store' });
-        const data = await r.json();
-        if (!r.ok || !data.pwd) throw new Error(data.error || 'bad');
+      const n = Number(raw);
+      if (n < 0 || n > 99999){
+        err.textContent = t.errRange;
+        res.textContent = '';
+        res.dataset.rawPwd = '';
+        return;
+      }
 
-        resEl.dataset.pwd = data.pwd;
-        resEl.textContent = t.resultPrefix + data.pwd;
-      }catch(e){
-        errEl.textContent = t.errSvc;
-        console.error(e);
+      try {
+        const clientEpochMs = Date.now();
+        const tzOffsetMin = new Date().getTimezoneOffset();
+        const r = await fetch(`${API_BASE}/api/calc`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ sn: raw, clientEpochMs, tzOffsetMin })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data?.error || ("HTTP " + r.status));
+        res.dataset.rawPwd = data.pwd;
+        res.textContent = t.resultPrefix + data.pwd;
+      } catch (e) {
+        err.textContent = (lang === 'zh' ? "请求失败：" : "Request failed: ") + (e?.message || e);
+        res.dataset.rawPwd = '';
+        res.textContent = '';
       }
     }
 
-    // 初始化语言
+    // 事件绑定（与原交互一致）
+    genBtn.addEventListener('click', compute);
+    sn.addEventListener('keydown', e => { if (e.key === 'Enter') compute(); });
+    sn.addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0,5); });
+    luggageBtn.addEventListener('click', () => { lang = (lang === 'zh' ? 'en' : 'zh'); applyI18n(); });
+
     applyI18n();
   </script>
 </body>
