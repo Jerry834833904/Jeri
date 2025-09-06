@@ -45,9 +45,6 @@
     }
 
     .note{font-size:13px; color:#666; margin-top:6px}
-    .numpad{margin:10px auto 0; width:min(460px,100%); display:grid; grid-template-columns:repeat(3,1fr); gap:8px}
-    .numpad button{border:1px solid var(--border); border-radius:12px; background:var(--btnbg); padding:12px 0; font-size:18px; font-weight:700; cursor:pointer}
-    .numpad button.muted{color:var(--muted); font-weight:600}
     #fileInput{ position:fixed; left:-9999px; top:0; width:1px; height:1px; opacity:0; pointer-events:auto; }
   </style>
 </head>
@@ -66,24 +63,7 @@
       <button id="voiceBtn" class="btn-wide">🎤 语音识别</button>
       <div id="err" class="err"></div>
       <div id="res" class="result" data-raw-pwd=""></div>
-      <div id="camArea">
-        <div id="numpad" class="numpad">
-          <button data-key="1">1</button>
-          <button data-key="2">2</button>
-          <button data-key="3">3</button>
-          <button data-key="4">4</button>
-          <button data-key="5">5</button>
-          <button data-key="6">6</button>
-          <button data-key="7">7</button>
-          <button data-key="8">8</button>
-          <button data-key="9">9</button>
-          <button data-key="del" class="muted">⌫</button>
-          <button data-key="0">0</button>
-          <button data-key="clr" class="muted">清空</button>
-        </div>
-        <div id="camTip" class="note" hidden>提示：将相机对准数字时，不要晃动手机，识别框会自动找数字进行识别。</div>
-      </div>
-
+      <div id="camTip" class="note" hidden>提示：将相机对准数字时，不要晃动手机，识别框会自动找数字进行识别。</div>
     </div>
     <div id="camPanel" class="cam-panel" hidden>
 
@@ -103,7 +83,7 @@
         <button id="pickImg" class="btn-wide" style="max-width:210px;">选择图片识别</button>
         <button id="closeCam" class="btn-wide" style="max-width:210px;">关闭相机</button>
       </div>
-      <!-- 提示 -->
+      <!-- 提示移至结果框下方，随相机开关显示/隐藏 -->
     </div>
 
     <div id="foot" class="footer">此程序由奥特维王杰开发，请勿转发，如转发后果自负。</div>
@@ -119,7 +99,7 @@
         resultPrefix:"密码是：",errNaN:"序列号必须是5位数字",errRange:"序列号范围为 00000 - 99999",errOCR:"识别失败，请靠近黑条并保持稳定",
         errCam:"相机不可用：",errASRNo:"此浏览器不支持语音识别",errASR:"语音识别错误：",tipListening:"正在听…请说5位数字（中文）",
         luggage:"🧳 Luggage",footer:"此程序由奥特维王杰开发，请勿转发，如转发后果自负。",
-        confirm:"提前确认",snap:"识别此帧",pick:"选择图片识别",close:"关闭相机",tipCam:"提示：将相机对准数字时，不要晃动手机，识别框会自动找数字进行识别。"
+        confirm:"提前确认",snap:"识别此帧",pick:"选择图片识别",close:"关闭相机",tipCam:"提示：把相机对准数字，不要晃动手机，识别框会自动找到数字并识别。"
       },
       en:{
 title:"ATW Stringer L4 Unlock",placeholder:"Enter 5-digit serial number",gen:"Generate Password",ocr:"📷 Scan via Camera",voice:"🎤 Speech Input",
@@ -144,12 +124,11 @@ title:"ATW Stringer L4 Unlock",placeholder:"Enter 5-digit serial number",gen:"Ge
     const confirmEarly=document.getElementById('confirmEarly'), snap=document.getElementById('snap'), closeCam=document.getElementById('closeCam');
     const pickImg=document.getElementById('pickImg'), fileInput=document.getElementById('fileInput'), liveNum=document.getElementById('liveNum');
     const camTip=document.getElementById('camTip');
-    const numpad=document.getElementById('numpad');
 
     function applyI18n(){ const t=i18n[lang];
       titleEl.textContent=t.title; sn.placeholder=t.placeholder; genBtn.textContent=t.gen; ocrBtn.textContent=t.ocr; voiceBtn.textContent=t.voice;
       luggageBtn.textContent=t.luggage; foot.textContent=t.footer;
-      confirmEarly.textContent=t.confirm; snap.textContent=t.snap; pickImg.textContent=t.pick; closeCam.textContent=t.close; if(camTip) camTip.textContent=t.tipCam; if(numpad){ const clrBtn=numpad.querySelector('[data-key="clr"]'); if(clrBtn) clrBtn.textContent=(lang==='zh'?'清空':'Clear'); }
+      confirmEarly.textContent=t.confirm; snap.textContent=t.snap; pickImg.textContent=t.pick; closeCam.textContent=t.close; if(camTip) camTip.textContent=t.tipCam;
       if(res.dataset.rawPwd) res.textContent=t.resultPrefix+res.dataset.rawPwd;
       document.documentElement.lang=(lang==='zh'?'zh-CN':'en'); liveNum.textContent='—';
     }
@@ -168,28 +147,6 @@ title:"ATW Stringer L4 Unlock",placeholder:"Enter 5-digit serial number",gen:"Ge
     genBtn.addEventListener('click',compute);
     sn.addEventListener('keydown',e=>{ if(e.key==='Enter') compute(); });
     luggageBtn.addEventListener('click',()=>{ lang=(lang==='zh'?'en':'zh'); applyI18n(); });
-
-    // —— 数字键盘 ——
-    if(numpad){
-      numpad.addEventListener('click', async (e)=>{
-        const btn = e.target.closest('button'); if(!btn) return;
-        const key = btn.getAttribute('data-key');
-        if(key==='del'){ sn.value = (sn.value||'').slice(0,-1); err.textContent=''; res.textContent=''; res.dataset.rawPwd=''; return; }
-        if(key==='clr'){ sn.value=''; err.textContent=''; res.textContent=''; res.dataset.rawPwd=''; return; }
-        if(/\d/.test(key)){
-          const cur=(sn.value||'').replace(/\D/g,'').slice(0,5);
-          if(cur.length>=5) return;
-          sn.value = (cur + key).slice(0,5);
-          if(sn.value.length===5){ await compute(); }
-        }
-      });
-    }
-    sn.addEventListener('input', async ()=>{
-      const v=(sn.value||'').replace(/\D/g,'').slice(0,5);
-      if(v!==sn.value){ sn.value=v; }
-      if(v.length===5){ await compute(); }
-    });
-
 
 function toGray(r,g,b){ return 0.299*r + 0.587*g + 0.114*b; }
     function findDarkBandWithRect(ctx){
@@ -344,7 +301,6 @@ const {width:w,height:h}=ctx.canvas; const src=ctx.getImageData(0,0,w,h); const 
 }catch(e){ err.textContent=i18n[lang].errCam+(e?.message||e); return false; }
     }
     function stopCamera(){
-      if (numpad) numpad.hidden = false;
       if (camTip) camTip.hidden = true;
       if(mediaStream){mediaStream.getTracks().forEach(t=>t.stop()); mediaStream=null;}
       preview.srcObject=null;
@@ -413,7 +369,6 @@ const {width:w,height:h}=ctx.canvas; const src=ctx.getImageData(0,0,w,h); const 
 
     ocrBtn.addEventListener('click', async ()=>{
       camPanel.hidden=false;
-      if (numpad) numpad.hidden = true;
       if (camTip) camTip.hidden = false;
       await startAutoLoop();
     });
@@ -449,7 +404,7 @@ const words=[['zero','oh','o','owe','ohh'],['one'],['two','to','too'],['three'],
       }
       return '';
     }
-    voiceBtn.addEventListener('click',()=>{ if(numpad) numpad.hidden = true; if(camTip) camTip.hidden = false;
+    voiceBtn.addEventListener('click',()=>{
       const t=i18n[lang]; err.textContent='';
       if(!SpeechRec){ err.textContent=t.errASRNo; return; }
       const rec=new SpeechRec();
@@ -471,8 +426,7 @@ const words=[['zero','oh','o','owe','ohh'],['one'],['two','to','too'],['three'],
           err.textContent=t.errNaN+'（'+txt+'）';
         }
       };
-      rec.onerror=(e)=>{ err.textContent=t.errASR+(e?.error||e); if(numpad) numpad.hidden = false; if(camTip) camTip.hidden = true; };
-      rec.onend=()=>{ if(numpad) numpad.hidden = false; if(camTip) camTip.hidden = true; };
+      rec.onerror=(e)=>{ err.textContent=t.errASR+(e?.error||e); };
     });
 
     applyI18n();
